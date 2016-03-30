@@ -6,15 +6,15 @@ import React, {
   Image,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
-  TouchableHighlight,
   View,
   ScrollView,
-  Modal
+  AsyncStorage,
 } from 'react-native';
 import { Actions } from 'react-native-router-flux';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { CURRENCIES, STORAGE_KEY } from '../config';
+import assets from '../utils/assets';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -27,14 +27,98 @@ export default class Home extends Component {
     this._renderSourcePrice = this._renderSourcePrice.bind(this);
     this._renderTargetPrice = this._renderTargetPrice.bind(this);
     this._handleGearClick = this._handleGearClick.bind(this);
+    // this._loadInitialState();
+    AsyncStorage.getItem(STORAGE_KEY).then((data) => {
+      data = JSON.parse(data);
+      // console.log('-----STORAGE_KEY', data.exchanges);
+      this.setState({
+        exchanges: data.exchanges
+      });
+    });
+
     this.state = {
       number1: 0,
       number2: '0',
       operator: '+',
-      moneySign1: '$',
-      moneySign2: '¥',
-      currency: 6.4850
+      pageIndex: 0,
+      exchanges: [
+        {
+          from: 'USD',
+          to: 'CNY',
+        }
+      ]
     };
+  }
+
+  async _loadInitialState() {
+    var value = await AsyncStorage.getItem(STORAGE_KEY);
+    if (value == null) {
+      // console.log('=== has value', JSON.parse(value));
+    } else {
+      console.log('====no value');
+      let initialData = {
+        currencies:{
+          // 人民币
+          CNY: {
+            symbol: '¥',
+            rate: 6.5149,
+          },
+          // 美元
+          USD: {
+            symbol: '$',
+            rate: 1,
+          },
+          // 日元
+          JPY: {
+            symbol: 'J￥',
+            rate: 112.857,
+          },
+          // 欧元
+          EUR: {
+            symbol: '€',
+            rate: 0.895351335864193,
+          },
+          // 英镑
+          GBP: {
+            symbol: '￡',
+            rate: 0.7104442407837621,
+          },
+          // 韩元
+          KRW: {
+            symbol: '₩',
+            rate: 1166.25,
+          },
+          // 港元
+          HKD: {
+            symbol: 'HK＄',
+            rate: 7.75945,
+          },
+          // 澳元
+          AUD: {
+            symbol: 'A$',
+            rate: 1.334489891239074,
+          },
+          // 加元
+          CAD: {
+            symbol: 'C$',
+            rate: 1.32593,
+          },
+        },
+        exchanges: [
+          {
+            from: 'HKD',
+            to: 'USD',
+          },
+          {
+            from: 'HKD',
+            to: 'CNY',
+          }
+        ]
+      };
+
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
+    }
+    return JSON.parse(value);
   }
 
   _handleKeyClick(e, keyCode) {
@@ -92,13 +176,25 @@ export default class Home extends Component {
     Actions.setting();
   }
 
+  _handleViewScroll(scroll) {
+    const { pageIndex } = this.state;
+    let event = scroll.nativeEvent;
+    let newId = parseInt(event.contentOffset.x/event.layoutMeasurement.width, 10);
+    if (newId != pageIndex) {
+      this.setState({
+        pageIndex: newId
+      });
+    }
+  }
+
   _renderSourcePrice() {
     let { number1, number2 } = this.state;
     return this._toThousands(number2 !== '0' ? number2 : number1);
   }
 
   _renderTargetPrice() {
-    let { number1, number2, currency } = this.state;
+    let { number1, number2, pageIndex, exchanges } = this.state;
+    let currency = CURRENCIES[exchanges[pageIndex].to].rate / CURRENCIES[exchanges[pageIndex].from].rate;
     let sourcePrice = number1 === 0 ? number2 : number1;
     return this._toThousands((sourcePrice*currency).toFixed(2));
   }
@@ -125,39 +221,67 @@ export default class Home extends Component {
   }
 
   render() {
-    // const { actions } = this.props;
-    let { number1, number2, moneySign1, moneySign2 } = this.state;
+    let { number1, number2, pageIndex, exchanges } = this.state;
     return (
       <View style={styles.container}>
+
+        <View style={styles.output}>
+          <View style={styles.outputSource}>
+            <Text style={styles.outputSourceText}>{CURRENCIES[exchanges[pageIndex].from].symbol + ' ' + this._renderSourcePrice()}</Text>
+          </View>
+          <View style={styles.outputTarget}>
+            <Text style={styles.outputTargetText}>{CURRENCIES[exchanges[pageIndex].to].symbol + ' ' + this._renderTargetPrice()}</Text>
+          </View>
+        </View>
+
+        <ScrollView
+          style={styles.flagScrollView}
+          horizontal={true}
+          pagingEnabled={true}
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={3}
+          onScroll={this._handleViewScroll.bind(this)}
+        >
+          {
+            exchanges.map((item, i) => {
+              // let className = [styles.dot];
+              // if (index === pageIndex) {
+              //   className.push(styles.dotCurrent);
+              // }
+              return (
+                <View style={styles.flags} key={`flags.${i}`}>
+                  <Image style={styles.flag} source={assets[item.from]} />
+                  <Image style={styles.flag} source={assets[item.to]} />
+                </View>
+              );
+            })
+          }
+        </ScrollView>
+
         <View style={styles.navBar}>
           <View style={styles.navLeft} />
           <View style={styles.navTitle}>
             <View style={styles.dots}>
-              <View style={[styles.dot, styles.dotCurrent]} />
-              <View style={styles.dot} />
-              <View style={styles.dot} />
-            </View>
-            <View style={styles.flags}>
-              <Image style={styles.flag} source={require('../../assets/flag/china.png')} />
-              <Icon name="long-arrow-right" size={12} color="#fff" />
-              <Image style={styles.flag} source={require('../../assets/flag/usa.png')} />
+              {
+                exchanges.map((item, index) => {
+                  let className = [styles.dot];
+                  if (index === pageIndex) {
+                    className.push(styles.dotCurrent);
+                  }
+                  return <View key={`dot.${index}`} style={className} />;
+                })
+              }
             </View>
           </View>
           <View style={styles.navRight}>
-            <Text style={styles.navRightIcon}>
-              <Icon name="bars" size={20} />
-            </Text>
+            <TouchableOpacity onPress={this._handleGearClick}>
+              <Text style={styles.navRightIcon}>
+                <Icon name="bars" size={18} color="#999" />
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
-        <View style={styles.output}>
-          <View style={styles.outputSource}>
-            <Text style={styles.outputSourceText}>{moneySign1 + ' ' + this._renderSourcePrice()}</Text>
-          </View>
-          <View style={styles.outputTarget}>
-            <Text style={styles.outputTargetText}>{moneySign2 + ' ' + this._renderTargetPrice()}</Text>
-          </View>
 
-        </View>
         <View style={styles.keyboard}>
           <View style={styles.tr}>
             <TouchableOpacity style={styles.td} onPress={e => this._handleKeyClick(e, 'c')}>
@@ -166,7 +290,7 @@ export default class Home extends Component {
             <TouchableOpacity style={styles.td} onPress={e => this._handleKeyClick(e, 'exchange')}>
               <Icon name="exchange" size={20} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.td} onPress={this._handleGearClick}>
+            <TouchableOpacity style={styles.td}>
               <Icon name="gear" size={20} />
             </TouchableOpacity>
             <TouchableOpacity style={[styles.td, styles.lastCell]} onPress={e => this._handleKeyClick(e, '/')}>
@@ -231,6 +355,7 @@ export default class Home extends Component {
             </TouchableOpacity>
           </View>
         </View>
+
       </View>
     );
   }
@@ -243,9 +368,13 @@ var styles = StyleSheet.create({
     height: SCREEN_HEIGHT,
   },
   navBar: {
-    marginTop: 30,
+    marginTop: 24,
     flexDirection: 'row',
     alignItems: 'center',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: SCREEN_WIDTH,
   },
   navLeft: {
     flex: 1,
@@ -259,9 +388,9 @@ var styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dot: {
-    borderRadius: 3,
-    width: 6,
-    height: 6,
+    borderRadius: 2,
+    width: 4,
+    height: 4,
     backgroundColor: '#999',
     marginLeft: 2,
     marginRight: 2,
@@ -269,20 +398,28 @@ var styles = StyleSheet.create({
   dotCurrent: {
     backgroundColor: '#fff',
   },
+  flagScrollView: {
+    opacity: 0.1,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: SCREEN_WIDTH,
+    flexDirection: 'column',
+  },
   flags: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
+    // alignItems: 'center',
+    // justifyContent: 'center',
+    flex: 1,
+    width: SCREEN_WIDTH,
   },
   flag: {
-    width: 13.5,
-    height: 9,
-    marginLeft: 5,
-    marginRight: 5,
+    width: SCREEN_WIDTH/2,
+    height: SCREEN_WIDTH*90/135,
   },
   navRight: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0)',
   },
   navRightIcon: {
     textAlign: 'right',
@@ -290,18 +427,18 @@ var styles = StyleSheet.create({
   },
   output: {
     flex: 1,
-    marginTop: 20,
     justifyContent: 'flex-end',
+    backgroundColor: 'transparent',
   },
   outputSourceText: {
     color: '#fff',
     textAlign: 'right',
-    fontSize: 24,
+    fontSize: 32,
   },
   outputTargetText: {
     color: '#fff',
     textAlign: 'right',
-    fontSize: 32,
+    fontSize: 24,
   },
   keyboard: {
     height: 450,
