@@ -5,20 +5,19 @@ import React, {
   Image,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
-  TouchableHighlight,
   View,
   ScrollView,
   AsyncStorage,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { CURRENCIES, STORAGE_KEY } from '../config';
+import { Actions } from 'react-native-router-flux';
+import { STORAGE_KEY } from '../config';
 import assets from '../utils/assets';
 
 export default class Home extends Component {
 
-  constructor(props) {
+  constructor (props) {
     super(props);
     AsyncStorage.getItem(STORAGE_KEY).then((data) => {
       data = JSON.parse(data);
@@ -27,13 +26,15 @@ export default class Home extends Component {
       });
     });
     this.state = {
-      exchanges: [
-
-      ]
+      exchanges: [ ]
     };
   }
 
-  render() {
+  _handleAddClick () {
+    Actions.newCurrency();
+  }
+
+  render () {
     let { exchanges } = this.state;
 
     return (
@@ -55,13 +56,15 @@ export default class Home extends Component {
                     <Text style={styles.currencyName}> {item.to}</Text>
                   </View>
                 </View>
-              )
+              );
             })
           }
         </View>
 
-        <View style={styles.add}>
-          
+        <View style={styles.addItem}>
+          <TouchableOpacity onPress={this._handleAddClick}>
+            <Text>+ 增加</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     );
@@ -101,4 +104,11 @@ var styles = StyleSheet.create({
   currencyName: {
     fontSize: 20,
   },
+  addItem: {
+    marginTop: 20,
+    padding: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#ccc',
+  }
 });

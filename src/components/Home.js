@@ -21,16 +21,16 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default class Home extends Component {
 
-  constructor(props) {
+  constructor (props) {
     super(props);
-    this._handleKeyClick = this._handleKeyClick.bind(this);
-    this._renderSourcePrice = this._renderSourcePrice.bind(this);
-    this._renderTargetPrice = this._renderTargetPrice.bind(this);
-    this._handleGearClick = this._handleGearClick.bind(this);
+    // this._handleKeyClick = this._handleKeyClick.bind(this);
+    // this._renderSourcePrice = this._renderSourcePrice.bind(this);
+    // this._renderTargetPrice = this._renderTargetPrice.bind(this);
+    // this._handleGearClick = this._handleGearClick.bind(this);
     // this._loadInitialState();
     AsyncStorage.getItem(STORAGE_KEY).then((data) => {
       data = JSON.parse(data);
-      // console.log('-----STORAGE_KEY', data.exchanges);
+      console.log('-----STORAGE_KEY', data.exchanges);
       this.setState({
         exchanges: data.exchanges
       });
@@ -50,14 +50,14 @@ export default class Home extends Component {
     };
   }
 
-  async _loadInitialState() {
+  async _loadInitialState () {
     var value = await AsyncStorage.getItem(STORAGE_KEY);
-    if (value == null) {
-      // console.log('=== has value', JSON.parse(value));
+    if (value !== null) {
+      console.log('=== has value', JSON.parse(value));
     } else {
       console.log('====no value');
       let initialData = {
-        currencies:{
+        currencies: {
           // 人民币
           CNY: {
             symbol: '¥',
@@ -121,7 +121,7 @@ export default class Home extends Component {
     return JSON.parse(value);
   }
 
-  _handleKeyClick(e, keyCode) {
+  _handleKeyClick (e, keyCode) {
     let { number1, number2, operator } = this.state;
     switch (keyCode) {
       case 'c':
@@ -140,9 +140,11 @@ export default class Home extends Component {
       case '-':
       case '*':
       case '/':
-          number1 = eval('number1' + operator + 'parseFloat(number2, 10)');
-          number2 = '0';
-          operator = keyCode !== '=' ? keyCode : '+';
+        /*eslint-disable */
+        number1 = eval('number1' + operator + 'parseFloat(number2, 10)');
+        /*eslint-enable */
+        number2 = '0';
+        operator = keyCode !== '=' ? keyCode : '+';
         break;
       case '.':
         // 小数点应该和数字一样处理
@@ -171,39 +173,39 @@ export default class Home extends Component {
     console.log(this.state);
   }
 
-  _handleGearClick() {
+  _handleGearClick () {
     console.log('==Actions: ', Actions);
     Actions.setting();
   }
 
-  _handleViewScroll(scroll) {
+  _handleViewScroll (scroll) {
     const { pageIndex } = this.state;
     let event = scroll.nativeEvent;
-    let newId = parseInt(event.contentOffset.x/event.layoutMeasurement.width, 10);
-    if (newId != pageIndex) {
+    let newId = parseInt(event.contentOffset.x / event.layoutMeasurement.width, 10);
+    if (newId !== pageIndex) {
       this.setState({
         pageIndex: newId
       });
     }
   }
 
-  _renderSourcePrice() {
+  _renderSourcePrice () {
     let { number1, number2 } = this.state;
     return this._toThousands(number2 !== '0' ? number2 : number1);
   }
 
-  _renderTargetPrice() {
+  _renderTargetPrice () {
     let { number1, number2, pageIndex, exchanges } = this.state;
     let currency = CURRENCIES[exchanges[pageIndex].to].rate / CURRENCIES[exchanges[pageIndex].from].rate;
     let sourcePrice = number1 === 0 ? number2 : number1;
-    return this._toThousands((sourcePrice*currency).toFixed(2));
+    return this._toThousands((sourcePrice * currency).toFixed(2));
   }
 
-  _getInteger(num) {
+  _getInteger (num) {
     return parseInt(num, 10);
   }
 
-  _getDecimal(num, includeDecimalPoint) {
+  _getDecimal (num, includeDecimalPoint) {
     let matches = num.toString().match(/\.(\d*)/);
     if (matches) {
       return matches[includeDecimalPoint ? 0 : 1];
@@ -211,7 +213,7 @@ export default class Home extends Component {
     return '';
   }
 
-  _toThousands(num) {
+  _toThousands (num) {
     let int = (this._getInteger(num) || 0)
       .toString()
       .replace(/(\d)(?=(?:\d{3})+$)/g, '$1,');
@@ -220,7 +222,7 @@ export default class Home extends Component {
     return int + decimal;
   }
 
-  render() {
+  render () {
     let { number1, number2, pageIndex, exchanges } = this.state;
     return (
       <View style={styles.container}>
@@ -414,8 +416,8 @@ var styles = StyleSheet.create({
     width: SCREEN_WIDTH,
   },
   flag: {
-    width: SCREEN_WIDTH/2,
-    height: SCREEN_WIDTH*90/135,
+    width: SCREEN_WIDTH / 2,
+    height: SCREEN_WIDTH * 90 / 135,
   },
   navRight: {
     flex: 1,
@@ -434,6 +436,7 @@ var styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'right',
     fontSize: 32,
+    // fontFamily: 'courier',
   },
   outputTargetText: {
     color: '#fff',

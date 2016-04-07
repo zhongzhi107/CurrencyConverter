@@ -10,4 +10,4 @@ export default {
   HKD: require('../../assets/flag/HKD.png'),
   AUD: require('../../assets/flag/AUD.png'),
   CAD: require('../../assets/flag/CAD.png'),
-}
+};
